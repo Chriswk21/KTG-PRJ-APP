@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    
+    <!-- PWA & Mobile Viewport Configurations -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="ShiftStock" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    
+    <title>Shift & Stock SPG/SPB Manager</title>
+    <meta name="description" content="Aplikasi mobile-first manajemen shift penjualan dan stok SPG/SPB untuk event." />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+      /* Smooth transitions and scroll behavior */
+      html, body, #root {
+        height: 100%;
+        background-color: #0f0f12;
+        color: #f1f1f5;
+        overflow-x: hidden;
+        user-select: none; /* Make it feel like native app */
+        -webkit-tap-highlight-color: transparent;
+      }
+    </style>
+  </head>
+  <body class="bg-dark-bg text-dark-text antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
