@@ -781,6 +781,18 @@ function App() {
     }
   }
 
+  // Handle manual refresh action
+  const handleManualRefresh = async () => {
+    try {
+      showToast('info', 'Menyegarkan data...')
+      await loadData(selectedDate, shiftType)
+      showToast('success', 'Data berhasil diperbarui!')
+    } catch (err) {
+      console.error(err)
+      showToast('error', 'Gagal memperbarui data!')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-dark-bg text-dark-text pb-16 flex flex-col font-sans">
       
@@ -817,12 +829,24 @@ function App() {
               </div>
             </div>
 
-            {/* Supabase Connection Indicator */}
-            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-dark-card border border-dark-border text-[10px] font-semibold">
-              <span className={`w-2 h-2 rounded-full ${isSupabaseConfigured ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] pulse-glow' : 'bg-amber-400 shadow-[0_0_8px_#fbbf24] pulse-glow'}`}></span>
-              <span className={isSupabaseConfigured ? 'text-emerald-400' : 'text-amber-400'}>
-                {isSupabaseConfigured ? 'Supabase Cloud' : 'Mode Demo (Lokal)'}
-              </span>
+            <div className="flex items-center space-x-2">
+              {/* Supabase Connection Indicator */}
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-dark-card border border-dark-border text-[10px] font-semibold">
+                <span className={`w-2 h-2 rounded-full ${isSupabaseConfigured ? 'bg-emerald-400 shadow-[0_0_8px_#34d399] pulse-glow' : 'bg-amber-400 shadow-[0_0_8px_#fbbf24] pulse-glow'}`}></span>
+                <span className={isSupabaseConfigured ? 'text-emerald-400' : 'text-amber-400'}>
+                  {isSupabaseConfigured ? 'Supabase Cloud' : 'Mode Demo (Lokal)'}
+                </span>
+              </div>
+
+              {/* Sleek Manual Refresh Button */}
+              <button
+                onClick={handleManualRefresh}
+                disabled={loading}
+                title="Refresh Data"
+                className="p-1.5 bg-dark-card hover:bg-dark-border border border-dark-border text-dark-muted hover:text-white rounded-lg transition-all active:scale-95 flex items-center justify-center cursor-pointer disabled:opacity-40"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
+              </button>
             </div>
           </div>
 
