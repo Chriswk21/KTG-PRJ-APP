@@ -124,6 +124,12 @@ function App() {
   const [errorMsg, setErrorMsg] = useState('')
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => localStorage.getItem('is_admin_authenticated') === 'true')
   
+  // Shift change auth states
+  const [showShiftAuthModal, setShowShiftAuthModal] = useState(false)
+  const [shiftAuthPassword, setShiftAuthPassword] = useState('')
+  const [shiftAuthErrorMsg, setShiftAuthErrorMsg] = useState('')
+  const [pendingShiftType, setPendingShiftType] = useState('')
+  
   const [sales, setSales] = useState([])
   const [stockRecords, setStockRecords] = useState([])
   const [activeFinancialRecap, setActiveFinancialRecap] = useState(null)
@@ -651,6 +657,34 @@ function App() {
     }
   }
 
+  // Clear all stock records (Reset table)
+  const clearAllStock = () => {
+    const confirmClear = window.confirm("Apakah Anda yakin ingin me-reset semua data input stok hari ini?")
+    if (!confirmClear) return
+
+    const cleared = stockRecords.map(r => ({
+      ...r,
+      sisa_kemarin: 0,
+      pengambilan: '',
+      total_pengambilan: 0,
+      total_barang: 0,
+      pemakaian: 0,
+      sisa_akhir: 0
+    }))
+
+    setStockRecords(cleared)
+    
+    // Save to DB in background
+    db.saveStockRecordsBulk(cleared)
+      .then(() => {
+        showToast('success', 'Semua tabel stok berhasil di-reset!')
+      })
+      .catch(err => {
+        console.error('Failed to clear stock:', err)
+        showToast('error', 'Gagal menyimpan reset stok!')
+      })
+  }
+
   // Handle financial recap edits
   const handleFinancialChange = (field, value) => {
     if (!activeFinancialRecap) return
@@ -718,6 +752,35 @@ function App() {
     }
   }
 
+  // Intercept shift changes and require password
+  const handleShiftChangeAttempt = (newShift) => {
+    if (shiftType === newShift) return
+    if (isAdminAuthenticated) {
+      setShiftType(newShift)
+    } else {
+      setPendingShiftType(newShift)
+      setShowShiftAuthModal(true)
+      setShiftAuthPassword('')
+      setShiftAuthErrorMsg('')
+    }
+  }
+
+  // Handle password submission for shift changing
+  const handleShiftAuthSubmit = () => {
+    if (shiftAuthPassword === '2103') {
+      setIsAdminAuthenticated(true)
+      localStorage.setItem('is_admin_authenticated', 'true')
+      setShiftType(pendingShiftType)
+      setShowShiftAuthModal(false)
+      setShiftAuthPassword('')
+      setShiftAuthErrorMsg('')
+      showToast('success', `Shift berhasil diganti ke ${pendingShiftType}!`)
+    } else {
+      setShiftAuthErrorMsg('Password salah!')
+      setShiftAuthPassword('')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-dark-bg text-dark-text pb-16 flex flex-col font-sans">
       
@@ -776,29 +839,29 @@ function App() {
               />
             </div>
 
-            {/* Shift Picker Toggle */}
-            <div className="grid grid-cols-2 p-1 bg-dark-card rounded-xl border border-dark-border">
-              <button 
-                onClick={() => setShiftType('Weekday')}
-                className={`py-1 text-center rounded-lg text-xs font-bold transition-all duration-200 ${
-                  shiftType === 'Weekday' 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'text-dark-muted hover:text-dark-text'
-                }`}
-              >
-                Weekday
-              </button>
-              <button 
-                onClick={() => setShiftType('Weekend')}
-                className={`py-1 text-center rounded-lg text-xs font-bold transition-all duration-200 ${
-                  shiftType === 'Weekend' 
-                    ? 'bg-indigo-600 text-white shadow-md' 
-                    : 'text-dark-muted hover:text-dark-text'
-                }`}
-              >
-                Weekend
-              </button>
-            </div>
+             {/* Shift Picker Toggle */}
+             <div className="grid grid-cols-2 p-1 bg-dark-card rounded-xl border border-dark-border">
+               <button 
+                 onClick={() => handleShiftChangeAttempt('Weekday')}
+                 className={`py-1 text-center rounded-lg text-xs font-bold transition-all duration-200 ${
+                   shiftType === 'Weekday' 
+                     ? 'bg-indigo-600 text-white shadow-md' 
+                     : 'text-dark-muted hover:text-dark-text'
+                 }`}
+               >
+                 Weekday
+               </button>
+               <button 
+                 onClick={() => handleShiftChangeAttempt('Weekend')}
+                 className={`py-1 text-center rounded-lg text-xs font-bold transition-all duration-200 ${
+                   shiftType === 'Weekend' 
+                     ? 'bg-indigo-600 text-white shadow-md' 
+                     : 'text-dark-muted hover:text-dark-text'
+                 }`}
+               >
+                 Weekend
+               </button>
+             </div>
           </div>
         </div>
       </header>
@@ -1101,14 +1164,25 @@ function App() {
                         </h2>
                       </div>
                       
-                      <button
-                        onClick={saveAllStock}
-                        disabled={saving}
-                        className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800/40 text-white rounded-xl text-xs font-bold flex items-center space-x-1 shadow-lg active:scale-95 transition-all"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        <span>{saving ? 'Menyimpan...' : 'Simpan Stok'}</span>
-                      </button>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={clearAllStock}
+                          disabled={saving}
+                          className="px-3 py-1.5 bg-rose-950/55 border border-rose-500/30 hover:bg-rose-900/60 disabled:opacity-40 text-rose-300 rounded-xl text-xs font-bold flex items-center space-x-1 active:scale-95 transition-all"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Reset</span>
+                        </button>
+                        
+                        <button
+                          onClick={saveAllStock}
+                          disabled={saving}
+                          className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-800/40 text-white rounded-xl text-xs font-bold flex items-center space-x-1 shadow-lg active:scale-95 transition-all"
+                        >
+                          <Save className="w-3.5 h-3.5" />
+                          <span>{saving ? 'Menyimpan...' : 'Simpan Stok'}</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="p-3 bg-dark-card border border-dark-border/60 rounded-2xl flex items-start space-x-2">
@@ -1655,6 +1729,57 @@ function App() {
                   className="py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-bold transition-all shadow-lg"
                 >
                   Masuk
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shift Change Authorization Modal */}
+      {showShiftAuthModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="glass p-5 rounded-3xl border border-dark-border max-w-xs w-full space-y-4 shadow-2xl animate-scaleUp">
+            <div className="text-center space-y-1.5">
+              <Shield className="w-8 h-8 text-indigo-400 mx-auto" />
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Ganti Shift Terkunci</h3>
+              <p className="text-[10px] text-dark-muted leading-tight">Masukkan password untuk mengubah tipe shift ({pendingShiftType}).</p>
+            </div>
+            <div className="space-y-3">
+              <input
+                type="password"
+                value={shiftAuthPassword}
+                onChange={(e) => {
+                  setShiftAuthPassword(e.target.value)
+                  setShiftAuthErrorMsg('')
+                }}
+                placeholder="Masukkan Password"
+                className="w-full text-center py-2.5 text-xs text-white bg-dark-bg border border-dark-border rounded-xl focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleShiftAuthSubmit()
+                }}
+                autoFocus
+              />
+              {shiftAuthErrorMsg && (
+                <p className="text-[9px] text-rose-400 font-bold text-center animate-shake">{shiftAuthErrorMsg}</p>
+              )}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setShowShiftAuthModal(false)
+                    setShiftAuthPassword('')
+                    setShiftAuthErrorMsg('')
+                    setPendingShiftType('')
+                  }}
+                  className="py-2 bg-dark-card border border-dark-border hover:bg-dark-border/40 text-dark-muted rounded-xl text-[10px] font-bold transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleShiftAuthSubmit}
+                  className="py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-bold transition-all shadow-lg"
+                >
+                  Konfirmasi
                 </button>
               </div>
             </div>
