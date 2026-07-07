@@ -312,6 +312,92 @@ function App() {
     return { totalFisik, totalQris }
   }, [allFinancialRecaps])
 
+  // Reconciliation data comparing physical stock usage vs theoretical sales requirements
+  const reconciliationData = useMemo(() => {
+    // 1. Calculate theoretical usage from sales packages
+    const theoretical = {}
+    DEFAULT_STOCK_ITEMS.forEach(item => {
+      theoretical[item.name] = 0
+    })
+    theoretical['KTG RTD (Combined)'] = 0
+
+    sales.forEach(sale => {
+      const qty = sale.quantity || 0
+      if (qty <= 0) return
+
+      if (sale.package_name === 'Paket Foldable Bag') {
+        theoretical['KTG Asli Pouch 138Gr'] += qty * 1
+        theoretical['KTG MIX Pouch'] += qty * 1
+        theoretical['KTG SPC MIX Mangga Rtg'] += qty * 1
+        theoretical['Foldable Bag'] += qty * 1
+      } else if (sale.package_name === 'Paket Pouch') {
+        theoretical['KTG Asli Pouch 138Gr'] += qty * 1
+        theoretical['KTG Manis Pouch'] += qty * 2
+        theoretical['Pouch KTG'] += qty * 1
+      } else if (sale.package_name === 'Paket KTG RTD No Gimmick') {
+        theoretical['KTG RTD (Combined)'] += qty * 3
+      } else if (sale.package_name === 'Paket Tas') {
+        theoretical['KTG RTD (Combined)'] += qty * 10
+        theoretical['Tas Tabung'] += qty * 1
+      } else if (sale.package_name === 'Paket 5 Days Family Pack') {
+        theoretical['5 Days Family Pack'] += qty * 1
+      }
+    })
+
+    // 2. Map to list of rows
+    const rows = []
+
+    // Helper to get physical usage (pemakaian)
+    const getPhysicalPemakaian = (itemName) => {
+      const rec = stockRecords.find(r => r.item_name === itemName)
+      return rec ? parseInt(rec.pemakaian || 0, 10) : 0
+    }
+
+    // Add regular pouch/pack items
+    const singleItems = [
+      { name: 'KTG Manis Pouch', cat: 'PRODUK' },
+      { name: 'KTG MIX Pouch', cat: 'PRODUK' },
+      { name: 'KTG Asli Pouch 138Gr', cat: 'PRODUK' },
+      { name: 'KTG SPC MIX Mangga Rtg', cat: 'PRODUK' },
+      { name: '5 Days Family Pack', cat: 'PRODUK' },
+      { name: 'Mini Croissant', cat: 'PRODUK' },
+      { name: 'Foldable Bag', cat: 'GIMMICK' },
+      { name: 'Pouch KTG', cat: 'GIMMICK' },
+      { name: 'Tas Tabung', cat: 'GIMMICK' }
+    ]
+
+    singleItems.forEach(item => {
+      const fisik = getPhysicalPemakaian(item.name)
+      const teoretis = theoretical[item.name] || 0
+      rows.push({
+        name: item.name,
+        category: item.cat,
+        fisik,
+        teoretis,
+        selisih: fisik - teoretis
+      })
+    })
+
+    // Add combined RTD row
+    const rtdFisik = 
+      getPhysicalPemakaian('KTG RTD Gula Batu') + 
+      getPhysicalPemakaian('KTG RTD Mangga') + 
+      getPhysicalPemakaian('FREE KTG RTD GULA BATU') + 
+      getPhysicalPemakaian('FREE KTG RTD MANGGA')
+    
+    const rtdTeoretis = theoretical['KTG RTD (Combined)'] || 0
+
+    rows.push({
+      name: 'KTG RTD (Gula Batu + Mangga + Free)',
+      category: 'PRODUK',
+      fisik: rtdFisik,
+      teoretis: rtdTeoretis,
+      selisih: rtdFisik - rtdTeoretis
+    })
+
+    return rows
+  }, [sales, stockRecords])
+
   // Helper to sum package quantity sold across all crew members on the current date
   const getPackageQtySold = (packageName) => {
     return sales.reduce((sum, s) => {
@@ -1282,6 +1368,61 @@ function App() {
                               })
                               return rows
                             })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Stock Reconciliation & Matching Table */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[10px] font-bold text-dark-muted uppercase tracking-wider">
+                          Rekonsiliasi Pemakaian Stok vs Penjualan
+                        </h3>
+                        <span className="text-[8px] font-extrabold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-500/20 animate-pulse">
+                          Kecocokan Fisik vs Teoretis
+                        </span>
+                      </div>
+                      
+                      <div className="overflow-x-auto rounded-2xl border border-dark-border bg-dark-card no-scrollbar shadow-lg">
+                        <table className="min-w-[600px] w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-dark-border/30 text-dark-muted text-[9px] font-black uppercase tracking-wider border-b border-dark-border/60">
+                              <th className="px-2.5 py-2 border-r border-dark-border/40">Nama Barang</th>
+                              <th className="px-2.5 py-2 text-center border-r border-dark-border/40 w-24">Kategori</th>
+                              <th className="px-2.5 py-2 text-center border-r border-dark-border/40 w-32 text-amber-400 font-extrabold">Stok Terpakai (Fisik)</th>
+                              <th className="px-2.5 py-2 text-center border-r border-dark-border/40 w-32 text-indigo-400 font-extrabold">Stok Terjual (Teoretis)</th>
+                              <th className="px-2.5 py-2 text-center w-36">Selisih Stok</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-dark-border/30 text-[10px]">
+                            {reconciliationData.map((row) => {
+                              return (
+                                <tr key={row.name} className="border-b border-dark-border/30 hover:bg-dark-border/10">
+                                  <td className="px-2.5 py-1.5 font-bold text-white border-r border-dark-border/40 leading-snug">
+                                    {row.name}
+                                  </td>
+                                  <td className="px-2.5 py-1.5 text-center text-dark-muted border-r border-dark-border/40 font-semibold font-mono">
+                                    {row.category}
+                                  </td>
+                                  <td className="px-2.5 py-1.5 text-center text-amber-500 font-bold border-r border-dark-border/40 font-mono">
+                                    {row.fisik}
+                                  </td>
+                                  <td className="px-2.5 py-1.5 text-center text-indigo-400 font-bold border-r border-dark-border/40 font-mono">
+                                    {row.teoretis}
+                                  </td>
+                                  <td className="px-2.5 py-1.5 text-center font-bold">
+                                    {row.selisih === 0 ? (
+                                      <span className="text-emerald-400 font-black">0 (Klop)</span>
+                                    ) : row.selisih > 0 ? (
+                                      <span className="text-rose-400 font-black">+{row.selisih} (Stok Hilang)</span>
+                                    ) : (
+                                      <span className="text-cyan-400 font-black">{row.selisih} (Selisih Kurang)</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
                           </tbody>
                         </table>
                       </div>
