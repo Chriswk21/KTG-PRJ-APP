@@ -130,6 +130,11 @@ function App() {
   const [shiftAuthErrorMsg, setShiftAuthErrorMsg] = useState('')
   const [pendingShiftType, setPendingShiftType] = useState('')
   
+  // Global app lock states
+  const [isAppUnlocked, setIsAppUnlocked] = useState(() => localStorage.getItem('app_unlocked') === 'true')
+  const [appPassword, setAppPassword] = useState('')
+  const [appPasswordError, setAppPasswordError] = useState('')
+  
   const [sales, setSales] = useState([])
   const [stockRecords, setStockRecords] = useState([])
   const [activeFinancialRecap, setActiveFinancialRecap] = useState(null)
@@ -791,6 +796,73 @@ function App() {
       console.error(err)
       showToast('error', 'Gagal memperbarui data!')
     }
+  }
+
+  // Handle global application unlocking
+  const handleAppUnlock = () => {
+    if (appPassword === 'ini ktg6') {
+      setIsAppUnlocked(true)
+      localStorage.setItem('app_unlocked', 'true')
+      setAppPassword('')
+      setAppPasswordError('')
+      showToast('success', 'Aplikasi berhasil dibuka!')
+    } else {
+      setAppPasswordError('Sandi aplikasi salah!')
+      setAppPassword('')
+    }
+  }
+
+  if (!isAppUnlocked) {
+    return (
+      <div className="min-h-screen bg-dark-bg text-dark-text flex items-center justify-center p-4 font-sans relative overflow-hidden">
+        {/* Background glow effects */}
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div className="glass p-6 rounded-3xl border border-dark-border max-w-sm w-full space-y-6 shadow-2xl relative z-10 text-center">
+          <div className="space-y-2">
+            <div className="p-3 bg-gradient-to-tr from-indigo-500 to-violet-600 rounded-2xl w-12 h-12 mx-auto flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+              <Shield className="w-6 h-6" />
+            </div>
+            <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-indigo-400 via-violet-300 to-purple-400 bg-clip-text text-transparent pt-1">
+              SHIFTFLOW PWA
+            </h1>
+            <p className="text-xs text-dark-muted font-medium mt-0.5 leading-tight">Sistem Informasi Shift & Manajemen Stok KTG</p>
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5 text-left">
+              <label className="text-[10px] font-bold text-dark-muted uppercase tracking-wider pl-1">Sandi Aplikasi</label>
+              <input
+                type="password"
+                value={appPassword}
+                onChange={(e) => {
+                  setAppPassword(e.target.value)
+                  setAppPasswordError('')
+                }}
+                placeholder="Masukkan Sandi Keamanan"
+                className="w-full text-center py-3 text-sm text-white bg-dark-bg/60 border border-dark-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-semibold"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAppUnlock()
+                }}
+                autoFocus
+              />
+            </div>
+
+            {appPasswordError && (
+              <p className="text-[10px] text-rose-400 font-bold text-center animate-shake">{appPasswordError}</p>
+            )}
+
+            <button
+              onClick={handleAppUnlock}
+              className="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30 active:scale-[0.98] cursor-pointer"
+            >
+              Buka Aplikasi
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
