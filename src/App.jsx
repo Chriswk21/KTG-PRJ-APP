@@ -459,14 +459,11 @@ function App() {
     }
 
     if (idx >= 0) {
-      // update existing
-      if (newQty === 0) {
-        // If 0, we can delete or keep with 0. Keep with 0 is fine, or delete. Let's keep for database record or delete if we want to save space. Let's keep it.
-        salesCopy[idx].quantity = 0
-        salesCopy[idx].total_price = 0
-      } else {
-        salesCopy[idx].quantity = newQty
-        salesCopy[idx].total_price = newQty * pkg.price
+      // update existing immutably
+      salesCopy[idx] = {
+        ...salesCopy[idx],
+        quantity: newQty,
+        total_price: newQty * pkg.price
       }
       targetSale.id = salesCopy[idx].id
     } else if (newQty > 0) {
