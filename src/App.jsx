@@ -800,7 +800,7 @@ function App() {
 
   // Handle global application unlocking
   const handleAppUnlock = () => {
-    if (appPassword === 'ini ktg6') {
+    if (appPassword === 'ktg6') {
       setIsAppUnlocked(true)
       localStorage.setItem('app_unlocked', 'true')
       setAppPassword('')
