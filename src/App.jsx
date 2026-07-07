@@ -151,6 +151,9 @@ function App() {
   const loadData = async (dateStr, currentShift) => {
     setLoading(true)
     try {
+      // Attempt to sync any offline edits first
+      await db.syncOfflineData()
+
       // 1. Fetch Sales
       const salesData = await db.fetchSales(dateStr)
       setSales(salesData || [])
@@ -176,6 +179,20 @@ function App() {
 
   useEffect(() => {
     loadData(selectedDate, shiftType)
+  }, [selectedDate, shiftType])
+
+  // Listen to browser network changes (automatic sync when internet returns)
+  useEffect(() => {
+    const handleOnline = async () => {
+      showToast('success', 'Koneksi kembali online! Menyinkronkan data...')
+      await db.syncOfflineData()
+      await loadData(selectedDate, shiftType)
+    }
+
+    window.addEventListener('online', handleOnline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+    }
   }, [selectedDate, shiftType])
 
   // Load active financial recap when activeRole changes

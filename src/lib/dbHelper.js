@@ -584,5 +584,87 @@ export const db = {
       console.warn('Supabase error, using LocalStorage fallback:', err)
       return localDb.saveFinancialRecap(recap)
     }
+  },
+
+  syncOfflineData: async () => {
+    if (!isSupabaseConfigured) return
+    try {
+      console.log('Starting offline data synchronization to Supabase...')
+
+      // 1. Sync Sales
+      const localSalesData = localStorage.getItem('spg_sales')
+      if (localSalesData) {
+        const localSales = JSON.parse(localSalesData)
+        if (localSales.length > 0) {
+          const salesToSave = localSales.map(s => {
+            const out = {
+              date: s.date,
+              shift_type: s.shift_type,
+              crew_name: s.crew_name,
+              package_name: s.package_name,
+              quantity: parseInt(s.quantity || 0, 10),
+              price_per_unit: parseInt(s.price_per_unit || 0, 10)
+            }
+            if (s.id) out.id = s.id
+            return out
+          })
+          
+          await supabase.from('sales').upsert(salesToSave)
+        }
+      }
+
+      // 2. Sync Stock Records
+      const localStockData = localStorage.getItem('spg_stock')
+      if (localStockData) {
+        const localStock = JSON.parse(localStockData)
+        if (localStock.length > 0) {
+          const stockToSave = localStock.map(s => {
+            const out = {
+              date: s.date,
+              shift_type: s.shift_type,
+              item_name: s.item_name,
+              sisa_kemarin: parseInt(s.sisa_kemarin || 0, 10),
+              pengambilan: s.pengambilan,
+              total_pengambilan: parseInt(s.total_pengambilan || 0, 10),
+              total_barang: parseInt(s.total_barang || 0, 10),
+              pemakaian: parseInt(s.pemakaian || 0, 10),
+              sisa_akhir: parseInt(s.sisa_akhir || 0, 10)
+            }
+            if (s.id) out.id = s.id
+            return out
+          })
+
+          await supabase.from('stock_records').upsert(stockToSave)
+        }
+      }
+
+      // 3. Sync Financial Recaps
+      const localRecapsData = localStorage.getItem('spg_recap')
+      if (localRecapsData) {
+        const localRecaps = JSON.parse(localRecapsData)
+        if (localRecaps.length > 0) {
+          const recapsToSave = localRecaps.map(r => {
+            const out = {
+              date: r.date,
+              shift_type: r.shift_type,
+              crew_name: r.crew_name || 'SPB',
+              modal_awal: parseInt(r.modal_awal || 0, 10),
+              uang_fisik: parseInt(r.uang_fisik || 0, 10),
+              uang_qris: parseInt(r.uang_qris || 0, 10),
+              total_penjualan: parseInt(r.total_penjualan || 0, 10),
+              selisih: parseInt(r.selisih || 0, 10)
+            }
+            if (r.id) out.id = r.id
+            return out
+          })
+
+          await supabase.from('financial_recap').upsert(recapsToSave)
+        }
+      }
+
+      console.log('Synchronization completed successfully!')
+    } catch (err) {
+      console.warn('Sync failed (likely still offline):', err)
+    }
   }
 }
